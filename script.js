@@ -157,6 +157,7 @@ function renderRecentComplaints() {
     emptyMessage.style.display = recent.length ? "none" : "block";
 }
 
+
 function renderAllComplaints() {
     const tbody = document.getElementById("all-complaints");
     const emptyMessage = document.getElementById("all-empty");
@@ -164,6 +165,8 @@ function renderAllComplaints() {
         .trim()
         .toLowerCase();
     const status = document.getElementById("status-filter").value;
+
+    const canUpdateStatus = currentUser?.role === "Maintenance Staff";
 
     const filtered = [...complaints]
         .sort((a, b) => b.id.localeCompare(a.id))
@@ -183,33 +186,36 @@ function renderAllComplaints() {
     tbody.innerHTML = filtered.map(item => `
         <tr>
             <td>
-    <button class="text-button complaint-details-btn"
-        data-id="${escapeHTML(item.id)}">
-        ${escapeHTML(item.id)}
-    </button>
-</td>
+                <button class="text-button complaint-details-btn"
+                    data-id="${escapeHTML(item.id)}">
+                    ${escapeHTML(item.id)}
+                </button>
+            </td>
             <td>${escapeHTML(item.title)}</td>
             <td>${escapeHTML(item.category)}</td>
             <td>${escapeHTML(item.location)}</td>
             <td>${formatDate(item.date)}</td>
             <td>
-                <select class="status-select"
-                    data-id="${escapeHTML(item.id)}"
-                    aria-label="Change status for ${escapeHTML(item.id)}">
-                    ${["Submitted", "Assigned", "In Progress", "Resolved"]
-                        .map(option => `
-                            <option value="${option}"
-                                ${item.status === option ? "selected" : ""}>
-                                ${option}
-                            </option>
-                        `).join("")}
-                </select>
+                ${canUpdateStatus ? `
+                    <select class="status-select"
+                        data-id="${escapeHTML(item.id)}"
+                        aria-label="Change status for ${escapeHTML(item.id)}">
+                        ${["Submitted", "Assigned", "In Progress", "Resolved"]
+                            .map(option => `
+                                <option value="${option}"
+                                    ${item.status === option ? "selected" : ""}>
+                                    ${option}
+                                </option>
+                            `).join("")}
+                    </select>
+                ` : statusBadge(item.status)}
             </td>
         </tr>
     `).join("");
 
     emptyMessage.style.display = filtered.length ? "none" : "block";
 }
+
 
 function renderAnalytics() {
     const chart = document.getElementById("category-chart");
