@@ -148,6 +148,8 @@ def login():
 def create_complaint():
     if "user_id" not in session:
         return jsonify({"error": "Please login first"}), 401
+    if session.get("role") == "Maintenance Staff":
+      return jsonify({"error": "Maintenance Staff cannot submit complaints"}), 403
 
     data = request.get_json(silent=True) or {}
 

@@ -694,6 +694,8 @@ document.getElementById("login-form").addEventListener("submit", async (event) =
       isAdmin ? "block" : "none";
       document.getElementById("add-complaint-btn").style.display =
     currentUser.role === "Maintenance Staff" ? "none" : "";
+    document.getElementById("add-complaint-btn-2").style.display =
+    currentUser.role === "Maintenance Staff" ? "none" : "";
       document.getElementById("profile-name").textContent = currentUser.full_name;
       document.getElementById("profile-role").textContent = currentUser.role;
       document.getElementById("profile-avatar").textContent = currentUser.full_name.charAt(0).toUpperCase();
