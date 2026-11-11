@@ -473,5 +473,33 @@ def logout():
     return jsonify({"message": "Logged out successfully!"})
 
 
+@app.route("/api/staff", methods=["GET"])
+def get_maintenance_staff():
+    if "user_id" not in session:
+        return jsonify({"error": "Please login first"}), 401
+
+    if session.get("role") != "Administrator":
+        return jsonify({"error": "Admin access required"}), 403
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute("""
+            SELECT user_id, full_name, email
+            FROM Users
+            WHERE role_id = (
+                SELECT role_id FROM Roles
+                WHERE role_name = 'Maintenance Staff'
+            )
+        """)
+
+        staff = cursor.fetchall()
+        return jsonify(staff)
+
+    finally:
+        cursor.close()
+        conn.close()
+
 if __name__ == "__main__":
     app.run(debug=True)

@@ -1,29 +1,8 @@
 
 const STORAGE_KEY = "campusfix_complaints";
 
-const maintenanceStaff = [
-    {
-        id: "STF-01",
-        name: "Rahul Sharma",
-        team: "Electrical"
-    },
-    {
-        id: "STF-02",
-        name: "Priya Verma",
-        team: "Plumbing"
-    },
-    {
-        id: "STF-03",
-        name: "Aman Singh",
-        team: "General Maintenance"
-    },
-    {
-        id: "STF-04",
-        name: "Neha Gupta",
-        team: "Internet"
-    }
-];
-
+let maintenanceStaff = [];
+let currentUser = null;
 const sampleComplaints = [
     {
         id: "CF-1001",
@@ -203,7 +182,12 @@ function renderAllComplaints() {
 
     tbody.innerHTML = filtered.map(item => `
         <tr>
-            <td>${escapeHTML(item.id)}</td>
+            <td>
+    <button class="text-button complaint-details-btn"
+        data-id="${escapeHTML(item.id)}">
+        ${escapeHTML(item.id)}
+    </button>
+</td>
             <td>${escapeHTML(item.title)}</td>
             <td>${escapeHTML(item.category)}</td>
             <td>${escapeHTML(item.location)}</td>
@@ -342,7 +326,7 @@ staffSelect.innerHTML = `
     <option value="">Unassigned</option>
     ${maintenanceStaff.map(staff => `
         <option value="${staff.id}">
-            ${staff.name} — ${staff.team}
+            ${staff.name} — ${staff.email}
         </option>
     `).join("")}
 `;
@@ -354,7 +338,37 @@ document.getElementById("assignment-message").textContent = "";
     document.getElementById("details-modal").classList.add("open");
 }
 
+async function fetchComplaints() {
+    try {
+        const response = await fetch(`${API_URL}/api/complaints`, {
+            method: "GET",
+            credentials: "include"
+        });
 
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || "Failed to fetch complaints");
+        }
+
+        complaints = data.map(item => ({
+            id: String(item.complaint_id),
+            title: item.title,
+            category: item.category_name,
+            location: item.location,
+            description: item.description,
+            date: item.created_at ? item.created_at.slice(0, 10) : "",
+            status: item.status,
+            assignedTo: item.assigned_staff || ""
+        }));
+
+        renderApp();
+
+    } catch (error) {
+        console.error("Fetch complaints error:", error);
+        showToast("Unable to load complaints.");
+    }
+}
 async function createComplaint(event) {
     event.preventDefault();
 
@@ -404,25 +418,47 @@ async function createComplaint(event) {
 }
 
 
-function updateComplaintStatus(event) {
+
+async function updateComplaintStatus(event) {
     const select = event.target.closest(".status-select");
 
     if (!select) {
         return;
     }
 
-    const complaint = complaints.find(item => item.id === select.dataset.id);
+    const complaintId = select.dataset.id;
+    const newStatus = select.value;
 
-    if (!complaint) {
-        return;
+    try {
+        const response = await fetch(`${API_URL}/api/complaints/${complaintId}/status`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            credentials: "include",
+            body: JSON.stringify({
+                status: newStatus
+            })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            showToast(result.error || "Status update failed.");
+            await fetchComplaints();
+            return;
+        }
+
+        await fetchComplaints();
+
+        showToast(result.message || "Complaint status updated successfully.");
+
+    } catch (error) {
+        console.error("Status update error:", error);
+        showToast("Could not connect to the server.");
     }
-
-    complaint.status = select.value;
-
-    saveComplaints();
-    renderApp();
-    showToast(`${complaint.id} status updated.`);
 }
+
 
 document.querySelectorAll(".nav-link").forEach(link => {
     link.addEventListener("click", () => {
@@ -494,41 +530,58 @@ document.getElementById("details-modal")
         }
     });
 
+
 document.getElementById("assign-staff-btn")
-    .addEventListener("click", () => {
+    .addEventListener("click", async () => {
+
         const complaintId = document.getElementById("detail-id").textContent;
+        const staffId = document.getElementById("staff-select").value;
 
-        const complaint = complaints.find(item => item.id === complaintId);
-
-        if (!complaint) {
-            showToast("Complaint not found.");
+        if (!staffId) {
+            showToast("Please select a maintenance staff member.");
             return;
         }
 
-        const staffId = document.getElementById("staff-select").value;
+        try {
+            const response = await fetch(`${API_URL}/api/complaints/${complaintId}/assign`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                credentials: "include",
+                body: JSON.stringify({
+                    staff_id: Number(staffId)
+                })
+            });
 
-        complaint.assignedTo = staffId;
+            const result = await response.json();
 
-        if (staffId && complaint.status === "Submitted") {
-            complaint.status = "Assigned";
+            if (!response.ok) {
+                showToast(result.error || "Assignment failed.");
+                return;
+            }
+
+            await fetchComplaints();
+
+            openComplaintDetails(complaintId);
+
+            document.getElementById("assignment-message").textContent =
+                "Staff assignment saved successfully.";
+
+            showToast(result.message);
+
+        } catch (error) {
+            console.error("Assignment error:", error);
+            showToast("Could not connect to the server.");
         }
-
-        saveComplaints();
-        renderApp();
-        openComplaintDetails(complaintId);
-
-        document.getElementById("assignment-message").textContent =
-            staffId ? "Staff assignment saved successfully." : "Complaint is now unassigned.";
-
-        showToast(staffId ? "Staff assigned successfully." : "Assignment removed.");
     });
 
 renderApp();
 
 const API_URL = "http://127.0.0.1:5000";
-async function fetchComplaints() {
+async function fetchMaintenanceStaff() {
     try {
-        const response = await fetch(`${API_URL}/api/complaints`, {
+        const response = await fetch(`${API_URL}/api/staff`, {
             method: "GET",
             credentials: "include"
         });
@@ -536,25 +589,20 @@ async function fetchComplaints() {
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(data.message || "Failed to fetch complaints");
+            throw new Error(data.error || "Failed to fetch staff");
         }
 
-        complaints = data.map(item => ({
-            id: String(item.complaint_id),
-            title: item.title,
-            category: item.category_name,
-            location: item.location,
-            description: item.description,
-            date: item.created_at ? item.created_at.slice(0, 10) : "",
-            status: item.status,
-            assignedTo: item.assigned_staff || ""
+        maintenanceStaff = data.map(staff => ({
+            id: staff.user_id,
+            name: staff.full_name,
+            email: staff.email
         }));
 
-        renderApp();
+        console.log("Maintenance staff loaded:", maintenanceStaff);
 
     } catch (error) {
-        console.error("Error fetching complaints:", error);
-        showToast("Unable to load complaints.");
+        console.error("Error fetching maintenance staff:", error);
+        showToast("Unable to load maintenance staff.");
     }
 }
 
@@ -623,16 +671,39 @@ document.getElementById("login-form").addEventListener("submit", async (event) =
 
         const result = await response.json();
 
-        if (!response.ok) {
-            showToast(result.message || "Invalid login details.");
-            return;
-        }
+          if (!response.ok) {
+         showToast(result.error || "Invalid login details.");
+         return;
+     }
 
+      currentUser = result.user;
+      const isAdmin = currentUser.role === "Administrator";
+
+      document.getElementById("maintenance-nav").style.display =
+      isAdmin ? "flex" : "none";
+
+      document.getElementById("analytics-nav").style.display =
+      isAdmin ? "flex" : "none";
+      document.getElementById("assignment-box").style.display =
+      isAdmin ? "block" : "none";
+      document.getElementById("add-complaint-btn").style.display =
+    currentUser.role === "Maintenance Staff" ? "none" : "";
+      document.getElementById("profile-name").textContent = currentUser.full_name;
+      document.getElementById("profile-role").textContent = currentUser.role;
+      document.getElementById("profile-avatar").textContent = currentUser.full_name.charAt(0).toUpperCase();
+      document.getElementById("top-avatar").textContent = currentUser.full_name.charAt(0).toUpperCase();
+
+      document.getElementById("welcome-name").textContent = currentUser.full_name;
         document.getElementById("auth-screen").style.display = "none";
         document.querySelector(".app").style.display = "flex";
 
-        showToast("Welcome to CampusFix!");
-        await fetchComplaints();
+        showToast(`Welcome, ${currentUser.full_name}!`);
+
+        if (currentUser.role === "Administrator") {
+            await fetchMaintenanceStaff();
+         }
+
+await fetchComplaints();
 
     } catch (error) {
         console.error("Login error:", error);

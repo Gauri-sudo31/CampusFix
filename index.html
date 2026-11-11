@@ -64,23 +64,22 @@
                 <button class="nav-link" data-page="complaints">
                     <span>▤</span> Complaints
                 </button>
-                <button class="nav-link" data-page="maintenance">
+                <button class="nav-link" id="maintenance-nav" data-page="maintenance">
                     <span>⚒</span> Maintenance Team
                 </button>
-                <button class="nav-link" data-page="analytics">
+                <button class="nav-link" id="analytics-nav" data-page="analytics">
                     <span>▥</span> Analytics
                 </button>
             </nav>
 
-            <div class="sidebar-bottom">
-                <div class="profile-avatar">A</div>
-                <div>
-                    <strong>Admin User</strong>
-                    <p>Administrator</p>
-                </div>
-            </div>
-        </aside>
-
+          <div class="sidebar-bottom">
+    <div class="profile-avatar" id="profile-avatar">U</div>
+    <div>
+        <strong id="profile-name">User</strong>
+        <p id="profile-role">Role</p>
+    </div>
+</div>
+</aside>
         <main class="main-content">
             <header class="topbar">
                 <div>
@@ -91,14 +90,14 @@
                     <span class="system-status">
                         <span class="status-dot"></span> System Online
                     </span>
-                    <div class="top-avatar">A</div>
+                    <div class="top-avatar" id="top-avatar">U</div>
                 </div>
             </header>
 
             <section class="page active" id="dashboard-page">
                 <div class="welcome-row">
                     <div>
-                        <h2>Good day, Administrator!</h2>
+                        <h2>Good day, <span id="welcome-name">User</span>!</h2>
                         <p>Here's what's happening around your campus.</p>
                     </div>
                     <button class="primary-button" id="add-complaint-btn">
@@ -380,7 +379,7 @@
             <p id="detail-description">—</p>
         </div>
        
-<div class="assignment-box">
+<div class="assignment-box" id="assignment-box">
     <h3>Maintenance Assignment</h3>
 
     <p class="assignment-description">
