@@ -14,11 +14,13 @@ app.secret_key = os.getenv("SECRET_KEY")
 CORS(
     app,
     supports_credentials=True,
-    origins=["http://127.0.0.1:5500"]
+    origins=[
+        os.getenv("FRONTEND_URL", "http://127.0.0.1:5500")
+    ]
 )
 app.secret_key = os.getenv("SECRET_KEY")
-app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-app.config["SESSION_COOKIE_SECURE"] = False
+app.config["SESSION_COOKIE_SAMESITE"] = "None"
+app.config["SESSION_COOKIE_SECURE"] = True
 
 
 @app.route("/")
